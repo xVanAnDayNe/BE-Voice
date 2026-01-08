@@ -1,5 +1,6 @@
 const cloudinary = require("cloudinary").v2;
 const Recording = require("../models/recording");
+const recordingService = require("../services/recording.service");
 
 exports.uploadAudio = async (req, res) => {
   try {
@@ -41,5 +42,26 @@ exports.uploadAudio = async (req, res) => {
       success: false,
       message: error.message,
     });
+  }
+};
+
+
+exports.getAllRecordings = async (req, res) => {
+  try {
+    const recordings = await recordingService.getAllRecordings();
+    res.status(200).json(recordings);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching recordings", error: err.message });
+  }
+};
+
+// APPROVE recording
+exports.approveRecording = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const updatedRecording = await recordingService.approveRecording(id);
+    res.status(200).json(updatedRecording);
+  } catch (err) {
+    res.status(500).json({ message: "Error approving recording", error: err.message });
   }
 };
