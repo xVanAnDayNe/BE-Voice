@@ -1,0 +1,14 @@
+const express = require("express");
+const cors = require("cors");
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+app.use("/api/users", require("./routes/person.route"));
+app.use("/api", require("./routes/auth.route"));
+app.use("/api/sentences", require("./routes/sentence.route"));
+app.use("/api/recordings", require("./routes/recording.route"));
+
+module.exports = app;
