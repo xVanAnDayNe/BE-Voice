@@ -26,7 +26,7 @@ exports.uploadAudio = async (req, res) => {
       personId,
       sentenceId,
       audioUrl: result.secure_url,
-      isApproved: false,
+      isApproved: 0, // 0 = chờ duyệt
       recordedAt: new Date(),
     });
 
@@ -63,5 +63,33 @@ exports.approveRecording = async (req, res) => {
     res.status(200).json(updatedRecording);
   } catch (err) {
     res.status(500).json({ message: "Error approving recording", error: err.message });
+  }
+};
+
+// REJECT recording
+exports.rejectRecording = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const updatedRecording = await recordingService.rejectRecording(id);
+    res.status(200).json(updatedRecording);
+  } catch (err) {
+    res.status(500).json({ message: "Error rejecting recording", error: err.message });
+  }
+};
+
+// Get recordings by status
+exports.getRecordingsByStatus = async (req, res) => {
+  try {
+    const { status } = req.params;
+
+    const recordings = await recordingService.getRecordingsByStatus(status);
+
+    res.json({
+      isApproved: Number(status),
+      count: recordings.length,
+      data: recordings
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
   }
 };

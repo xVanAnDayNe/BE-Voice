@@ -1,22 +1,35 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-exports.loginAdmin = async (req, res) => {
+exports.login = async (req, res) => {
   try {
     const { username, password } = req.body;
-    if (username !== process.env.ADMIN_USERNAME) {
+
+    let role, passwordHash, message;
+
+    // Kiểm tra xem username có phải admin hay manager
+    if (username === process.env.ADMIN_USERNAME) {
+      role = "Admin";
+      passwordHash = process.env.ADMIN_PASSWORD_HASH;
+      message = "Login admin success";
+    } else if (username === process.env.MANAGER_USERNAME) {
+      role = "Manager";
+      passwordHash = process.env.MANAGER_PASSWORD_HASH;
+      message = "Login manager success";
+    } else {
       return res.status(401).json({ message: "Invalid credentials" });
     }
-    const isMatch = await bcrypt.compare(
-      password,
-      process.env.ADMIN_PASSWORD_HASH
-    );
+
+    // Xác thực mật khẩu
+    const isMatch = await bcrypt.compare(password, passwordHash);
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
+
+    // Tạo JWT token
     const token = jwt.sign(
       {
-        role: "Admin",
+        role,
         username
       },
       process.env.JWT_SECRET,
@@ -24,8 +37,9 @@ exports.loginAdmin = async (req, res) => {
     );
 
     return res.json({
-      message: "Login admin success",
-      token
+      message,
+      token,
+      role
     });
   } catch (err) {
     return res.status(500).json({ message: "Server error" });

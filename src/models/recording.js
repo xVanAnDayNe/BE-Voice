@@ -20,8 +20,9 @@ const recordingSchema = new mongoose.Schema(
     },
 
     isApproved: {
-      type: Boolean,
-      default: false,
+      type: Number,
+      enum: [0, 1, 2, 3],
+      default: 0, // 0 = chờ duyệt, 1 = được duyệt, 2 = bị từ chối, 3 = không thể duyệt
     },
 
     recordedAt: {

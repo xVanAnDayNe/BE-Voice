@@ -1,13 +1,81 @@
 const userService = require("../services/person.service");
 
 exports.createGuestUser = async (req, res) => {
-  const user = await userService.createGuest(req.body);
-  res.json({ message: "Guest(User) create sucessfully",guestId: user.PersonID });
+  try {
+    const user = await userService.createGuest(req.body);
+
+    res.status(201).json({
+      message: "Guest(User) create successfully",
+      guestId: user._id
+    });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
 };
+
 
 exports.getAll = async (req, res) => {
+  try {
     const users = await userService.getUsers();
     res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
+exports.updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
 
+    const updatedUser = await userService.updateUserName(id, name);
+
+    res.json({
+      message: "User updated successfully",
+      user: {
+        id: updatedUser._id,
+        name: updatedUser.name,
+        gender: updatedUser.gender
+      }
+    });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+exports.deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deletedUser = await userService.deleteUser(id);
+
+    res.json({
+      message: "User deleted successfully",
+      deletedUser: {
+        id: deletedUser._id,
+        name: deletedUser.name
+      }
+    });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+exports.getTopRecorders = async (req, res) => {
+  try {
+    const { status, limit } = req.query;
+
+    const users = await userService.getUsersByRecordingCount(status, limit);
+
+    res.json({
+      filter: {
+        status: status ? Number(status) : null,
+        limit: Number(limit) || 10
+      },
+      count: users.length,
+      data: users
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
