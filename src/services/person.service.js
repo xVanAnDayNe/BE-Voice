@@ -90,7 +90,7 @@ exports.getUsersByRecordingCount = async (statusFilter = null, limit = 10) => {
   if (statusFilter !== null) {
     matchCondition.isApproved = Number(statusFilter);
   }
-  const recordingStats = recording.aggregate([
+  const recordingStats = await recording.aggregate([
     { $match: matchCondition },
     {
       $group: {
