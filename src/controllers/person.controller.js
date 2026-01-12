@@ -98,3 +98,23 @@ exports.getTopSentenceContributors = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+// Get top users by number of distinct sentences they recorded
+exports.getTopSentenceRecorders = async (req, res) => {
+  try {
+    const { status, limit } = req.query;
+
+    const users = await userService.getUsersByUniqueSentenceCount(limit || 10, status ?? null);
+
+    res.json({
+      filter: {
+        status: status !== undefined ? Number(status) : null,
+        limit: Number(limit) || 10
+      },
+      count: users.length,
+      data: users
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};

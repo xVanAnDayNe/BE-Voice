@@ -165,3 +165,42 @@ exports.getUsersBySentenceCount = async (limit = 10) => {
   });
 };
 
+// Get users sorted by number of distinct sentences they recorded
+exports.getUsersByUniqueSentenceCount = async (limit = 10, statusFilter = null) => {
+
+  const match = {};
+  if (statusFilter !== null) {
+    match.isApproved = Number(statusFilter);
+  }
+
+  const agg = [
+    { $match: match },
+    {
+      $group: {
+        _id: { personId: "$personId", sentenceId: "$sentenceId" }
+      }
+    },
+    {
+      $group: {
+        _id: "$_id.personId",
+        uniqueSentenceCount: { $sum: 1 }
+      }
+    },
+    { $sort: { uniqueSentenceCount: -1 } },
+    { $limit: Number(limit) }
+  ];
+
+  const stats = await recording.aggregate(agg);
+  const userIds = stats.map(s => s._id);
+  const users = await Person.find({ _id: { $in: userIds } });
+
+  return stats.map(s => {
+    const user = users.find(u => u._id.toString() === s._id.toString());
+    return {
+      userId: user?._id || s._id,
+      name: user?.name || null,
+      uniqueSentences: s.uniqueSentenceCount,
+      createdAt: user?.createdAt || null
+    };
+  });
+};
