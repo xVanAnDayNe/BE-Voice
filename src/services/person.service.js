@@ -1,11 +1,10 @@
 const Person = require("../models/person");
+const recording = require("../models/recording");
 const { toPublicUser } = require("../utils/person.mapper");
 const bcrypt = require("bcrypt");
 
 exports.createGuest = async (data) => {
   const trimmedName = data.name.trim();
-
-  // Kiểm tra tên đã tồn tại chưa (case insensitive)
   const allUsers = await Person.find({}, 'name');
   const existingUser = allUsers.find(user =>
     user.name.toLowerCase() === trimmedName.toLowerCase()
@@ -53,8 +52,6 @@ exports.updateUserName = async (id, newName) => {
   }
 
   const trimmedName = newName.trim();
-
-  // Kiểm tra tên đã tồn tại với user khác chưa (case insensitive)
   const allUsers = await Person.find({ _id: { $ne: id } }, 'name');
   const existingUser = allUsers.find(user =>
     user.name.toLowerCase() === trimmedName.toLowerCase()
@@ -87,15 +84,13 @@ exports.deleteUser = async (id) => {
   return deletedUser;
 };
 
-// Get users sorted by recording count (most recordings first)
+// Get users sorted by recording count 
 exports.getUsersByRecordingCount = async (statusFilter = null, limit = 10) => {
   const matchCondition = {};
   if (statusFilter !== null) {
     matchCondition.isApproved = Number(statusFilter);
   }
-
-  // Aggregate recordings by personId
-  const recordingStats = await require("../models/recording").aggregate([
+  const recordingStats = recording.aggregate([
     { $match: matchCondition },
     {
       $group: {
@@ -115,12 +110,8 @@ exports.getUsersByRecordingCount = async (statusFilter = null, limit = 10) => {
     { $sort: { recordingCount: -1 } },
     { $limit: Number(limit) }
   ]);
-
-  // Get user details for each personId
   const userIds = recordingStats.map(stat => stat._id);
   const users = await Person.find({ _id: { $in: userIds } });
-
-  // Combine recording stats with user info
   const result = recordingStats.map(stat => {
     const user = users.find(u => u._id.toString() === stat._id.toString());
     return {

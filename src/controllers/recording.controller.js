@@ -29,8 +29,6 @@ exports.uploadAudio = async (req, res) => {
       isApproved: 0, // 0 = chờ duyệt
       recordedAt: new Date(),
     });
-
-    // 4️⃣ Response
     res.status(201).json({
       success: true,
       message: "Upload audio thành công",
@@ -45,7 +43,7 @@ exports.uploadAudio = async (req, res) => {
   }
 };
 
-
+//GET ALL RECORDING
 exports.getAllRecordings = async (req, res) => {
   try {
     const recordings = await recordingService.getAllRecordings();
@@ -55,7 +53,7 @@ exports.getAllRecordings = async (req, res) => {
   }
 };
 
-// APPROVE recording
+// APPROVE RECORDING
 exports.approveRecording = async (req, res) => {
   try {
     const id = req.params.id;
@@ -66,7 +64,7 @@ exports.approveRecording = async (req, res) => {
   }
 };
 
-// REJECT recording
+// REJECT RECORDING
 exports.rejectRecording = async (req, res) => {
   try {
     const id = req.params.id;
@@ -77,7 +75,7 @@ exports.rejectRecording = async (req, res) => {
   }
 };
 
-// Get recordings by status
+// GET RECORDING BY STATUS
 exports.getRecordingsByStatus = async (req, res) => {
   try {
     const { status } = req.params;

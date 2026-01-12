@@ -1,5 +1,5 @@
-require("dotenv").config();          // 🔥 PHẢI Ở DÒNG ĐẦU
-require("./configs/cloudinary.config"); // 🔥 CONFIG CLOUDINARY SỚM
+require("dotenv").config();        
+require("./configs/cloudinary.config"); 
 
 const app = require("./app");
 const connectDB = require("./configs/db.config");

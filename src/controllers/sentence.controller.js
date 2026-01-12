@@ -20,8 +20,8 @@ exports.createSentence = async (req, res) => {
 exports.createUserSentence = async (req, res) => {
   try {
     const { content } = req.body;
-
-    const sentences = await sentenceService.createUserSentence(content);
+    const userName = req.body.name;
+    const sentences = await sentenceService.createUserSentence(content, userName);
 
     res.status(201).json({
       message: "User sentences created successfully",

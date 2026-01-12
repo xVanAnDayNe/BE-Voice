@@ -28,7 +28,7 @@ exports.getSentences = async () => {
 
 
 //Create sentence for user (status = 0)
-exports.createUserSentence = async (content) => {
+exports.createUserSentence = async (content, userName) => {
     if (!content) {
         throw new Error("Content is required");
     }
@@ -40,7 +40,8 @@ exports.createUserSentence = async (content) => {
 
     const data = sentences.map(text => ({
         content: text,
-        status: 0
+        status: 0,
+        createdBy: userName 
     }));
 
     return await Sentence.insertMany(data);
@@ -95,8 +96,6 @@ exports.updateSentence = async (id, data) => {
   if (!data.content || data.content.trim() === "") {
     throw new Error("Content không được rỗng");
   }
-
-  // Kiểm tra status của sentence trước khi update
   const existingSentence = await Sentence.findById(id);
   if (!existingSentence) {
     throw new Error("Sentence không tồn tại");

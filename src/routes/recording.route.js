@@ -11,10 +11,7 @@ router.post(
   recordingController.uploadAudio
 );
 router.get("/", recordingController.getAllRecordings);
-// Get recordings by status (0=pending, 1=approved, 2=rejected, 3=cannot approve)
 router.get("/status/:status", recordingController.getRecordingsByStatus);
-
-// Admin/Manager only: APPROVE/REJECT recordings
 router.patch("/:id/approve", verifyAdminOrManager, recordingController.approveRecording);
 router.patch("/:id/reject", verifyAdminOrManager, recordingController.rejectRecording);
 
