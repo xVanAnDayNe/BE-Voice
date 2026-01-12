@@ -79,3 +79,22 @@ exports.getTopRecorders = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+// Get top users by sentence contributions (only sentences with status 1,2,3)
+exports.getTopSentenceContributors = async (req, res) => {
+  try {
+    const { limit } = req.query;
+
+    const users = await userService.getUsersBySentenceCount(limit || 10);
+
+    res.json({
+      filter: {
+        limit: Number(limit) || 10
+      },
+      count: users.length,
+      data: users
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};

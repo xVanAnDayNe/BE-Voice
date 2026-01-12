@@ -1,5 +1,6 @@
 const Person = require("../models/person");
 const recording = require("../models/recording");
+const sentence = require("../models/sentence");
 const { toPublicUser } = require("../utils/person.mapper");
 const bcrypt = require("bcrypt");
 
@@ -129,4 +130,38 @@ exports.getUsersByRecordingCount = async (statusFilter = null, limit = 10) => {
   return result;
 };
 
+
+// Get users sorted by sentence contributions (only sentences with status 1,2,3)
+exports.getUsersBySentenceCount = async (limit = 10) => {
+  const stats = await sentence.aggregate([
+    { $match: { status: { $in: [1, 2, 3] }, createdBy: { $ne: null } } },
+    {
+      $group: {
+        _id: "$createdBy",
+        sentenceCount: { $sum: 1 },
+        status1Count: { $sum: { $cond: [{ $eq: ["$status", 1] }, 1, 0] } },
+        status2Count: { $sum: { $cond: [{ $eq: ["$status", 2] }, 1, 0] } },
+        status3Count: { $sum: { $cond: [{ $eq: ["$status", 3] }, 1, 0] } }
+      }
+    },
+    { $sort: { sentenceCount: -1 } },
+    { $limit: Number(limit) }
+  ]);
+
+  const names = stats.map(s => s._id);
+  const users = await Person.find({ name: { $in: names } });
+
+  return stats.map(s => {
+    const user = users.find(u => u.name === s._id);
+    return {
+      userName: s._id,
+      userId: user?._id || null,
+      totalSentences: s.sentenceCount,
+      status1Count: s.status1Count,
+      status2Count: s.status2Count,
+      status3Count: s.status3Count,
+      createdAt: user?.createdAt || null
+    };
+  });
+};
 

@@ -6,6 +6,7 @@ const { verifyAdminOrManager } = require("../middlewares/admin.middleware");
 router.post("/", controller.createGuestUser);
 router.get("/", controller.getAll);
 router.get("/top-recorders", verifyAdminOrManager, controller.getTopRecorders);
+router.get("/top-sentence-contributors", controller.getTopSentenceContributors);
 router.put("/:id", verifyAdminOrManager, controller.updateUser);
 router.delete("/:id", verifyAdminOrManager, controller.deleteUser);
 
