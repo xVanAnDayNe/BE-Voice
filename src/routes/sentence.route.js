@@ -8,6 +8,8 @@ router.post("/", verifyAdminOrManager, sentenceController.createSentence);
 router.post("/user", sentenceController.createUserSentence);
 router.get("/", sentenceController.getAll);
 router.get("/status/:status", sentenceController.getSentencesByStatus);
+// Download/export sentences (mode=all|with-audio|approved)
+router.get("/download", sentenceController.downloadSentences);
 router.put("/:id", sentenceController.updateSentence);
 router.patch("/:id/approve", verifyAdminOrManager, sentenceController.approveSentence);
 router.patch("/:id/reject", verifyAdminOrManager, sentenceController.rejectSentence);

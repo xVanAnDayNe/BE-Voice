@@ -11,6 +11,11 @@ const sentenceSchema = new mongoose.Schema(
       enum: [0, 1, 2, 3],
       default: 1 // 0=user created, 1=admin created, 2=has approved recording, 3=rejected
     }
+    ,
+    createdBy: {
+      type: String,
+      default: null
+    }
   },
   {
     collection: 'sentence',

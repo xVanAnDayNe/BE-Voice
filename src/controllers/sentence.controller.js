@@ -1,4 +1,6 @@
 const sentenceService = require("../services/sentence.service");
+const axios = require("axios");
+const archiver = require("archiver"); 
 
 exports.createSentence = async (req, res) => {
   try {
@@ -21,7 +23,7 @@ exports.createUserSentence = async (req, res) => {
   try {
     const { content } = req.body;
     const userName = req.body.name;
-    const sentences = await sentenceService.createUserSentence(content);
+    const sentences = await sentenceService.createUserSentence(content, userName);
 
     res.status(201).json({
       message: "User sentences created successfully",
@@ -31,6 +33,60 @@ exports.createUserSentence = async (req, res) => {
     res.status(400).json({
       message: err.message,
     });
+  }
+};
+
+// Download sentences for export modes: all | with-audio | approved
+exports.downloadSentences = async (req, res) => {
+  try {
+    const mode = (req.query.mode || "all").toString();
+    const allowed = ["all", "with-audio", "approved"];
+
+    if (!allowed.includes(mode)) {
+      return res.status(400).json({
+        message: "Invalid mode. Allowed: all, with-audio, approved"
+      });
+    }
+
+    const data = await sentenceService.downloadSentences(mode);
+
+    if (!data.length) {
+      return res.status(404).json({ message: "No data to download" });
+    }
+
+    // 🔴 SET HEADER DOWNLOAD
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="sentences_${mode}.zip"`
+    );
+    res.setHeader("Content-Type", "application/zip");
+
+    // 🔴 STREAM ZIP
+    const archive = archiver("zip", { zlib: { level: 9 } });
+    archive.pipe(res);
+
+    for (const item of data) {
+      // text file
+      archive.append(item.sentence.Content + "\n", {
+        name: `text/${item.sentence.SentenceID}.txt`
+      });
+
+      // audio files
+      for (const rec of item.recordings || []) {
+        const audioStream = await axios.get(rec.AudioUrl, {
+          responseType: "stream"
+        });
+
+        archive.append(audioStream.data, {
+          name: `audio/${item.sentence.SentenceID}/${rec.RecordingID}.wav`
+        });
+      }
+    }
+
+    await archive.finalize();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
   }
 };
 

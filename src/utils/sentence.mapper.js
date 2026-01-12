@@ -6,6 +6,7 @@ exports.mapSentence = (row) => {
         Content: row.content,
         CreatedAt: row.createdAt,
         Status: row.status,
+        CreatedBy: row.createdBy || null,
     };
 };
 
