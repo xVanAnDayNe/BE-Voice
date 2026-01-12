@@ -21,7 +21,7 @@ exports.createUserSentence = async (req, res) => {
   try {
     const { content } = req.body;
     const userName = req.body.name;
-    const sentences = await sentenceService.createUserSentence(content, userName);
+    const sentences = await sentenceService.createUserSentence(content);
 
     res.status(201).json({
       message: "User sentences created successfully",

@@ -28,7 +28,7 @@ exports.getSentences = async () => {
 
 
 //Create sentence for user (status = 0)
-exports.createUserSentence = async (content, userName) => {
+exports.createUserSentence = async (content) => {
     if (!content) {
         throw new Error("Content is required");
     }
@@ -41,7 +41,6 @@ exports.createUserSentence = async (content, userName) => {
     const data = sentences.map(text => ({
         content: text,
         status: 0,
-        createdBy: userName 
     }));
 
     return await Sentence.insertMany(data);
