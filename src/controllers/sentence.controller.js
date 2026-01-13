@@ -19,10 +19,19 @@ exports.createSentence = async (req, res) => {
   }
 };
 
+const Person = require("../models/person");
+
 exports.createUserSentence = async (req, res) => {
   try {
     const { content } = req.body;
-    const userName = req.body.name;
+    // Prefer personId (if provided) to reliably set createdBy, otherwise use name
+    let userName = req.body.name || null;
+    const personId = req.body.personId || req.body.userId;
+    if (personId) {
+      const person = await Person.findById(personId).select("name");
+      if (person) userName = person.name;
+    }
+
     const sentences = await sentenceService.createUserSentence(content, userName);
 
     res.status(201).json({
