@@ -23,13 +23,14 @@ exports.createSentence = async (content) => {
 //Get all sentence 
 exports.getSentences = async () => {
     const rows = await Sentence.find()
-      .select("content createdAt status");
+  .select("content createdAt status createdBy createdById");
     return rows.map(mapSentence);
 };
 
 
 //Create sentence for user (status = 0)
-exports.createUserSentence = async (content, userName) => {
+// params: content, userName (string), personId (ObjectId or string)
+exports.createUserSentence = async (content, userName = null, personId = null) => {
     if (!content) {
         throw new Error("Content is required");
     }
@@ -42,7 +43,8 @@ exports.createUserSentence = async (content, userName) => {
     const data = sentences.map(text => ({
         content: text,
         status: 0,
-        createdBy: userName || null
+        createdBy: userName || null,
+        createdById: personId || null
     }));
 
     return await Sentence.insertMany(data);
@@ -57,7 +59,7 @@ exports.downloadSentences = async (mode = "all") => {
 
   if (mode === "all") {
     const sentences = await Sentence.find()
-      .select("content createdAt status createdBy")
+      .select("content createdAt status createdBy createdById")
       .sort({ createdAt: -1 });
 
     const sentenceIds = sentences.map(s => s._id);
@@ -86,7 +88,7 @@ exports.downloadSentences = async (mode = "all") => {
 
   if (mode === "with-audio") {
     const recordings = await Recording.find({ isApproved: { $in: [0, 1] } })
-      .populate("sentenceId", "content status createdAt createdBy")
+      .populate("sentenceId", "content status createdAt createdBy createdById")
       .sort({ recordedAt: -1 });
 
     const mapBySentence = {};
@@ -117,7 +119,7 @@ exports.downloadSentences = async (mode = "all") => {
 
   if (mode === "approved") {
     const recordings = await Recording.find({ isApproved: 1 })
-      .populate("sentenceId", "content status createdAt createdBy")
+      .populate("sentenceId", "content status createdAt createdBy createdById")
       .sort({ recordedAt: -1 });
 
     const mapBySentence = {};

@@ -16,6 +16,12 @@ const sentenceSchema = new mongoose.Schema(
       type: String,
       default: null
     }
+    ,
+    createdById: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "person",
+      default: null
+    }
   },
   {
     collection: 'sentence',
