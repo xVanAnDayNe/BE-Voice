@@ -25,6 +25,11 @@ const recordingSchema = new mongoose.Schema(
       default: 0, // 0 = chờ duyệt, 1 = được duyệt, 2 = bị từ chối, 3 = không thể duyệt
     },
 
+    duration: {
+      type: Number, // duration in seconds (or as returned by cloudinary)
+      default: null,
+    },
+
     recordedAt: {
       type: Date,
       default: Date.now,

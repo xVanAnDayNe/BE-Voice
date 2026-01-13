@@ -5,6 +5,7 @@ exports.mapRecording = (row) => {
     SentenceID: row.sentenceId,
     AudioUrl: row.audioUrl,
     IsApproved: row.isApproved,
+    Duration: row.duration || null,
     RecordedAt: row.recordedAt,
   };
 };

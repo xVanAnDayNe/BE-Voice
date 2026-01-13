@@ -11,6 +11,25 @@ exports.createSentence = async (content) => {
         .split(/[.!?]/)
         .map(s => s.trim())
         .filter(s => s.length > 0);
+    // Check duplicates (case-insensitive) before creating
+    const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const existing = await Promise.all(
+      sentences.map(async (text) => {
+        return await Sentence.findOne({
+          content: { $regex: new RegExp(`^${escapeRegex(text)}$`, 'i') }
+        });
+      })
+    );
+
+    const dupes = existing
+      .map((r, i) => (r ? { content: sentences[i], id: r._id } : null))
+      .filter(Boolean);
+
+    if (dupes.length) {
+      const dupeList = dupes.map(d => d.content).join(', ');
+      throw new Error(`Duplicate sentences exist: ${dupeList}`);
+    }
+
     const data = sentences.map(text => ({
         content: text,
         status: 1
@@ -23,7 +42,7 @@ exports.createSentence = async (content) => {
 //Get all sentence 
 exports.getSentences = async () => {
     const rows = await Sentence.find()
-  .select("content createdAt status createdBy createdById");
+  .select("content createdAt status createdBy");
     return rows.map(mapSentence);
 };
 
@@ -44,7 +63,6 @@ exports.createUserSentence = async (content, userName = null, personId = null) =
         content: text,
         status: 0,
         createdBy: userName || null,
-        createdById: personId || null
     }));
 
     return await Sentence.insertMany(data);
@@ -59,7 +77,7 @@ exports.downloadSentences = async (mode = "all") => {
 
   if (mode === "all") {
     const sentences = await Sentence.find()
-      .select("content createdAt status createdBy createdById")
+      .select("content createdAt status createdBy")
       .sort({ createdAt: -1 });
 
     const sentenceIds = sentences.map(s => s._id);
@@ -88,7 +106,7 @@ exports.downloadSentences = async (mode = "all") => {
 
   if (mode === "with-audio") {
     const recordings = await Recording.find({ isApproved: { $in: [0, 1] } })
-      .populate("sentenceId", "content status createdAt createdBy createdById")
+      .populate("sentenceId", "content status createdAt createdBy")
       .sort({ recordedAt: -1 });
 
     const mapBySentence = {};
@@ -119,7 +137,7 @@ exports.downloadSentences = async (mode = "all") => {
 
   if (mode === "approved") {
     const recordings = await Recording.find({ isApproved: 1 })
-      .populate("sentenceId", "content status createdAt createdBy createdById")
+      .populate("sentenceId", "content status createdAt createdBy")
       .sort({ recordedAt: -1 });
 
     const mapBySentence = {};

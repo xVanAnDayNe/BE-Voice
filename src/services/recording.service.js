@@ -39,10 +39,27 @@ const approveRecording = async (id) => {
   const sentence = await Sentence.findById(recording.sentenceId);
   if (!sentence) throw new Error("Sentence not found");
 
+  // Check duplicates: is there another sentence with same content already approved (status = 2)?
+  const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const dup = await Sentence.findOne({
+    _id: { $ne: sentence._id },
+    content: { $regex: new RegExp(`^${escapeRegex(sentence.content)}$`, 'i') },
+    status: 2
+  });
+
+  if (dup) {
+    // Mark recording as cannot approve and mark the sentence as rejected
+    await Recording.findByIdAndUpdate(id, { isApproved: 3 });
+    await Sentence.findByIdAndUpdate(sentence._id, { status: 3 });
+    throw new Error("Đã tồn tại sentence đã được duyệt khác giống nội dung này; recording không thể duyệt");
+  }
+
+  // Also check if current sentence already has status=2 (defensive)
   if (sentence.status === 2) {
     await Recording.findByIdAndUpdate(id, { isApproved: 3 });
     throw new Error("Sentence này đã có recording được duyệt, không thể duyệt thêm recording khác");
   }
+
   const updatedRecording = await Recording.findByIdAndUpdate(
     id,
     { isApproved: 1 },

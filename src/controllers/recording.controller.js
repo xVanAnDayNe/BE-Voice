@@ -27,6 +27,7 @@ exports.uploadAudio = async (req, res) => {
       sentenceId,
       audioUrl: result.secure_url,
       isApproved: 0, // 0 = chờ duyệt
+      duration: result.duration || null,
       recordedAt: new Date(),
     });
     res.status(201).json({
