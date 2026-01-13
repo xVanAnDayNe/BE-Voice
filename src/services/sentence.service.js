@@ -29,7 +29,7 @@ exports.getSentences = async () => {
 
 
 //Create sentence for user (status = 0)
-exports.createUserSentence = async (content, userName = null) => {
+exports.createUserSentence = async (content, userName) => {
     if (!content) {
         throw new Error("Content is required");
     }
