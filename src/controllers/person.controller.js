@@ -2,12 +2,12 @@ const userService = require("../services/person.service");
 
 exports.createGuestUser = async (req, res) => {
   try {
-    const user = await userService.createGuest(req.body);
+  const user = await userService.createGuest(req.body);
 
-    res.status(201).json({
-      message: "Guest(User) create successfully",
-      guestId: user._id
-    });
+  res.status(201).json({
+    message: "Guest(User) create successfully",
+    guestId: user._id
+  });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

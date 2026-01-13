@@ -32,11 +32,29 @@ exports.createUserSentence = async (req, res) => {
       if (person) userName = person.name;
     }
 
-    const sentences = await sentenceService.createUserSentence(content, userName, personId);
+    const result = await sentenceService.createUserSentence(content, userName, personId);
 
-    res.status(201).json({
-      message: "User sentences created successfully",
-      data: sentences
+    const createdCount = (result.created || []).length;
+    const skippedCount = (result.skipped || []).length;
+
+    if (createdCount > 0 && skippedCount === 0) {
+      return res.status(201).json({
+        message: `Created ${createdCount} sentence(s)`,
+        data: result
+      });
+    }
+
+    if (createdCount > 0 && skippedCount > 0) {
+      return res.status(201).json({
+        message: `Created ${createdCount} sentence(s), skipped ${skippedCount} duplicate(s)`,
+        data: result
+      });
+    }
+
+    // createdCount === 0 && skippedCount > 0
+    return res.status(200).json({
+      message: `No new sentences created; ${skippedCount} duplicate(s) skipped`,
+      data: result
     });
   } catch (err) {
     res.status(400).json({

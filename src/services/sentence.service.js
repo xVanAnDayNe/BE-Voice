@@ -49,7 +49,7 @@ exports.getSentences = async () => {
 
 //Create sentence for user (status = 0)
 // params: content, userName (string), personId (ObjectId or string)
-exports.createUserSentence = async (content, userName = null, personId = null) => {
+exports.createUserSentence = async (content, userName = null) => {
     if (!content) {
         throw new Error("Content is required");
     }
@@ -59,13 +59,29 @@ exports.createUserSentence = async (content, userName = null, personId = null) =
         .map(s => s.trim())
         .filter(s => s.length > 0);
 
-    const data = sentences.map(text => ({
+    const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const toInsert = [];
+    const skipped = [];
+
+    for (const text of sentences) {
+      const exists = await Sentence.findOne({
+        content: { $regex: new RegExp(`^${escapeRegex(text)}$`, 'i') }
+      });
+      if (exists) {
+        skipped.push({ content: text, existingId: exists._id });
+        continue;
+      }
+      toInsert.push({
         content: text,
         status: 0,
         createdBy: userName || null,
-    }));
+      });
+    }
 
-    return await Sentence.insertMany(data);
+    const created = toInsert.length ? await Sentence.insertMany(toInsert) : [];
+
+    return { created, skipped };
 };
 
 // Download sentences for different modes:
