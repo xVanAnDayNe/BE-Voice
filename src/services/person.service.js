@@ -25,7 +25,77 @@ exports.createGuest = async (data) => {
 exports.getUsers = async () => {
     const rows = await Person.find()
       .select("name gender role createdAt");
-    return rows.map(toPublicUser);
+
+    const users = rows.map(toPublicUser);
+    const userIds = rows.map(r => r._id);
+    if (!userIds.length) return users;
+    const uniqueAgg = await recording.aggregate([
+      { $match: { personId: { $in: userIds }, isApproved: 1 } },
+      { $group: { _id: { personId: "$personId", sentenceId: "$sentenceId" } } },
+      { $group: { _id: "$_id.personId", sentences: { $push: "$_id.sentenceId" } } }
+    ]);
+
+    const durationAgg = await recording.aggregate([
+      { $match: { personId: { $in: userIds }, isApproved: 1 } },
+      { $group: { _id: "$personId", totalDuration: { $sum: { $ifNull: ["$duration", 0] } } } }
+    ]);
+
+    const sentencesMap = {};
+    uniqueAgg.forEach(item => {
+      sentencesMap[item._id.toString()] = item.sentences.map(s => s.toString());
+    });
+
+    const durationMap = {};
+    durationAgg.forEach(item => {
+      durationMap[item._id.toString()] = item.totalDuration;
+    });
+    const allSentenceIds = Object.values(sentencesMap).flat();
+    let sentenceDocs = [];
+    if (allSentenceIds.length) {
+      sentenceDocs = await sentence.find({ _id: { $in: allSentenceIds } })
+        .select("content");
+    }
+    const sentenceById = {};
+    sentenceDocs.forEach(s => { sentenceById[s._id.toString()] = s.content; });
+    const results = users.map(u => {
+      const uid = u.PersonID.toString();
+      const sentenceIds = sentencesMap[uid] || [];
+      const sentencesDone = sentenceIds.map(id => ({
+        SentenceID: id,
+        Content: sentenceById[id] || null
+      }));
+      const totalDuration = durationMap[uid] || 0;
+      const totalSentencesDone = (sentenceIds || []).length;
+      return {
+        ...u,
+        SentencesDone: sentencesDone,
+        TotalRecordingDuration: totalDuration,
+        TotalSentencesDone: totalSentencesDone
+      };
+    });
+
+    return results;
+};
+
+// Total number of sentences contributed by users (createdBy not null)
+exports.getTotalUserContributions = async (options = {}) => {
+  const { includeSentences = true, limit = null } = options;
+
+  const total = await sentence.countDocuments({ createdBy: { $ne: null } });
+
+  if (!includeSentences) {
+    return { totalContributed: total };
+  }
+
+  let query = sentence.find({ createdBy: { $ne: null } })
+    .select("content status createdBy createdAt")
+    .sort({ createdAt: -1 });
+
+  if (limit) query = query.limit(Number(limit));
+
+  const sentences = await query.lean();
+
+  return { totalContributed: total, sentences };
 };
 
 exports.loginAdmin = async (username, password) => {

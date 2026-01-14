@@ -17,7 +17,10 @@ exports.createGuestUser = async (req, res) => {
 exports.getAll = async (req, res) => {
   try {
     const users = await userService.getUsers();
-    res.json(users);
+    res.json({
+      count: users.length,
+      data: users
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
@@ -114,6 +117,22 @@ exports.getTopSentenceRecorders = async (req, res) => {
       count: users.length,
       data: users
     });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// Total number of sentences contributed by users
+exports.getTotalUserContributions = async (req, res) => {
+  try {
+    const include = req.query.include === undefined ? true : req.query.include === "true";
+    const limit = req.query.limit ? Number(req.query.limit) : null;
+
+    const result = await userService.getTotalUserContributions({
+      includeSentences: include,
+      limit
+    });
+    res.json(result);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }

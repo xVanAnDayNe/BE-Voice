@@ -24,7 +24,6 @@ const Person = require("../models/person");
 exports.createUserSentence = async (req, res) => {
   try {
     const { content } = req.body;
-    // Prefer personId (if provided) to reliably set createdBy, otherwise use name
     let userName = req.body.name || null;
     const personId = req.body.personId || req.body.userId;
     if (personId) {
@@ -50,8 +49,6 @@ exports.createUserSentence = async (req, res) => {
         data: result
       });
     }
-
-    // createdCount === 0 && skippedCount > 0
     return res.status(200).json({
       message: `No new sentences created; ${skippedCount} duplicate(s) skipped`,
       data: result
@@ -80,25 +77,18 @@ exports.downloadSentences = async (req, res) => {
     if (!data.length) {
       return res.status(404).json({ message: "No data to download" });
     }
-
-    // 🔴 SET HEADER DOWNLOAD
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="sentences_${mode}.zip"`
     );
     res.setHeader("Content-Type", "application/zip");
-
-    // 🔴 STREAM ZIP
     const archive = archiver("zip", { zlib: { level: 9 } });
     archive.pipe(res);
 
     for (const item of data) {
-      // text file
       archive.append(item.sentence.Content + "\n", {
         name: `text/${item.sentence.SentenceID}.txt`
       });
-
-      // audio files
       for (const rec of item.recordings || []) {
         const audioStream = await axios.get(rec.AudioUrl, {
           responseType: "stream"
@@ -177,7 +167,10 @@ exports.getSentencesByStatus = async (req, res) => {
 exports.getAll = async (req, res) => {
   try {
     const sentences = await sentenceService.getSentences();
-    res.json(sentences);
+    res.json({
+      count: sentences.length,
+      data: sentences
+    });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
