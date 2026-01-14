@@ -49,6 +49,13 @@ exports.getUsers = async () => {
     durationAgg.forEach(item => {
       durationMap[item._id.toString()] = item.totalDuration;
     });
+    // contributions by user name (sentences created by users)
+    const contribAgg = await sentence.aggregate([
+      { $match: { createdBy: { $ne: null } } },
+      { $group: { _id: "$createdBy", count: { $sum: 1 } } }
+    ]);
+    const contribMap = {};
+    contribAgg.forEach(item => { contribMap[item._id] = item.count; });
     const allSentenceIds = Object.values(sentencesMap).flat();
     let sentenceDocs = [];
     if (allSentenceIds.length) {
@@ -70,7 +77,8 @@ exports.getUsers = async () => {
         ...u,
         SentencesDone: sentencesDone,
         TotalRecordingDuration: totalDuration,
-        TotalSentencesDone: totalSentencesDone
+        TotalSentencesDone: totalSentencesDone,
+        TotalContributedByUser: contribMap[u.Name] || 0
       };
     });
 
