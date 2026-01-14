@@ -56,6 +56,25 @@ exports.getUsers = async () => {
     ]);
     const contribMap = {};
     contribAgg.forEach(item => { contribMap[item._id] = item.count; });
+    // fetch detailed created sentences grouped by createdBy (name)
+    const userNames = users.map(u => u.Name).filter(Boolean);
+    let createdSentences = [];
+    if (userNames.length) {
+      createdSentences = await sentence.find({ createdBy: { $in: userNames } })
+        .select("content status createdBy createdAt")
+        .sort({ createdAt: -1 })
+        .lean();
+    }
+    const createdByMap = {};
+    createdSentences.forEach(s => {
+      createdByMap[s.createdBy] = createdByMap[s.createdBy] || [];
+      createdByMap[s.createdBy].push({
+        SentenceID: s._id,
+        Content: s.content,
+        Status: s.status,
+        CreatedAt: s.createdAt
+      });
+    });
     const allSentenceIds = Object.values(sentencesMap).flat();
     let sentenceDocs = [];
     if (allSentenceIds.length) {
@@ -78,7 +97,8 @@ exports.getUsers = async () => {
         SentencesDone: sentencesDone,
         TotalRecordingDuration: totalDuration,
         TotalSentencesDone: totalSentencesDone,
-        TotalContributedByUser: contribMap[u.Name] || 0
+        TotalContributedByUser: contribMap[u.Name] || 0,
+        CreatedSentences: createdByMap[u.Name] || []
       };
     });
 
