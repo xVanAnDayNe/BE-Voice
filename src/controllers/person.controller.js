@@ -6,19 +6,33 @@ exports.createGuestUser = async (req, res) => {
     const result = await userService.createGuest(req.body);
     const user = result.user || result;
 
-    // create JWT token for user
+    return res.status(201).json({
+      message: "Add user successful",
+      userId: user._id
+    });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// User login by email (returns JWT)
+exports.loginUser = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await userService.loginUser(email);
+
     const token = jwt.sign(
       {
         role: "User",
         userId: user._id,
-        name: user.name
+        email: user.email
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || "1d" }
     );
 
-    return res.status(200).json({
-      message: "Login success",
+    res.json({
+      message: "Login user success",
       token
     });
   } catch (error) {

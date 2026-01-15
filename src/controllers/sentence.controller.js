@@ -24,14 +24,15 @@ const Person = require("../models/person");
 exports.createUserSentence = async (req, res) => {
   try {
     const { content } = req.body;
-    let userName = req.body.name || null;
+    // prefer email if provided
+    let userEmail = req.body.email || null;
     const personId = req.body.personId || req.body.userId;
     if (personId) {
-      const person = await Person.findById(personId).select("name");
-      if (person) userName = person.name;
+      const person = await Person.findById(personId).select("email");
+      if (person) userEmail = person.email;
     }
 
-    const result = await sentenceService.createUserSentence(content, userName, personId);
+    const result = await sentenceService.createUserSentence(content, userEmail, personId);
 
     const createdCount = (result.created || []).length;
     const skippedCount = (result.skipped || []).length;

@@ -5,29 +5,34 @@ const { toPublicUser } = require("../utils/person.mapper");
 const bcrypt = require("bcrypt");
 
 exports.createGuest = async (data) => {
-  const trimmedName = data.name.trim();
-  const allUsers = await Person.find({}, "name");
-  const existingUser = allUsers.find((user) =>
-    user.name.toLowerCase() === trimmedName.toLowerCase()
-  );
+  const email = data.email.trim().toLowerCase();
+  const allUsers = await Person.find({}, "email");
+  const existingUser = allUsers.find((user) => user.email === email);
 
   if (existingUser) {
-    // return existing user object and flag so controller can issue token/login
-    const user = await Person.findOne({ _id: existingUser._id });
-    return { user, existed: true };
+    return { user: await Person.findOne({ _id: existingUser._id }), existed: true };
   }
 
   const created = await Person.create({
-    name: trimmedName,
+    email,
     gender: data.gender,
     role: "User",
   });
   return { user: created, existed: false };
 };
 
+// Login user by email (returns user)
+exports.loginUser = async (email) => {
+  if (!email) throw new Error("Email is required");
+  const normalized = email.trim().toLowerCase();
+  const user = await Person.findOne({ email: normalized });
+  if (!user) throw new Error("User not found");
+  return user;
+};
+
 exports.getUsers = async () => {
     const rows = await Person.find()
-      .select("name gender role createdAt");
+      .select("email gender role createdAt");
 
     const users = rows.map(toPublicUser);
     const userIds = rows.map(r => r._id);
@@ -52,15 +57,13 @@ exports.getUsers = async () => {
     durationAgg.forEach(item => {
       durationMap[item._id.toString()] = item.totalDuration;
     });
-    // contributions by user name (sentences created by users)
     const contribAgg = await sentence.aggregate([
       { $match: { createdBy: { $ne: null } } },
       { $group: { _id: "$createdBy", count: { $sum: 1 } } }
     ]);
     const contribMap = {};
     contribAgg.forEach(item => { contribMap[item._id] = item.count; });
-    // fetch detailed created sentences grouped by createdBy (name)
-    const userNames = users.map(u => u.Name).filter(Boolean);
+    const userNames = users.map(u => u.Email).filter(Boolean);
     let createdSentences = [];
     if (userNames.length) {
       createdSentences = await sentence.find({ createdBy: { $in: userNames } })
@@ -100,8 +103,8 @@ exports.getUsers = async () => {
         SentencesDone: sentencesDone,
         TotalRecordingDuration: totalDuration,
         TotalSentencesDone: totalSentencesDone,
-        TotalContributedByUser: contribMap[u.Name] || 0,
-        CreatedSentences: createdByMap[u.Name] || []
+        TotalContributedByUser: contribMap[u.Email] || 0,
+        CreatedSentences: createdByMap[u.Email] || []
       };
     });
 
@@ -218,7 +221,7 @@ exports.getUsersByRecordingCount = async (statusFilter = null, limit = 10) => {
     const user = users.find(u => u._id.toString() === stat._id.toString());
     return {
       userId: user?._id,
-      name: user?.name,
+      email: user?.email,
       gender: user?.gender,
       totalRecordings: stat.recordingCount,
       approvedRecordings: stat.approvedCount,
@@ -250,20 +253,52 @@ exports.getUsersBySentenceCount = async (limit = 10) => {
   ]);
 
   const names = stats.map(s => s._id);
-  const users = await Person.find({ name: { $in: names } });
+  const users = await Person.find({ email: { $in: names } });
 
-  return stats.map(s => {
-    const user = users.find(u => u.name === s._id);
-    return {
-      userName: s._id,
-      userId: user?._id || null,
+  const results = [];
+  for (const s of stats) {
+    const user = users.find(u => u.email === s._id);
+    const personId = user?._id || null;
+    let recordedSentences = [];
+    let recordingTotalCount = 0;
+    if (personId) {
+      const recAgg = await recording.aggregate([
+        { $match: { personId: personId } },
+        {
+          $group: {
+            _id: "$sentenceId",
+            recordingCount: { $sum: 1 },
+            approvedCount: { $sum: { $cond: [{ $eq: ["$isApproved", 1] }, 1, 0] } }
+          }
+        }
+      ]);
+      recordingTotalCount = recAgg.reduce((acc, r) => acc + (r.recordingCount || 0), 0);
+      const sentenceIds = recAgg.map(r => r._id);
+      const sentenceDocs = sentenceIds.length ? await sentence.find({ _id: { $in: sentenceIds } }).select("content") : [];
+      const sentenceById = {};
+      sentenceDocs.forEach(sd => { sentenceById[sd._id.toString()] = sd.content; });
+      recordedSentences = recAgg.map(r => ({
+        SentenceID: r._id,
+        Content: sentenceById[r._id.toString()] || null,
+        RecordingCount: r.recordingCount,
+        ApprovedCount: r.approvedCount
+      }));
+    }
+
+    results.push({
+      userEmail: s._id,
+      userId: personId,
       totalSentences: s.sentenceCount,
       status1Count: s.status1Count,
       status2Count: s.status2Count,
       status3Count: s.status3Count,
-      createdAt: user?.createdAt || null
-    };
-  });
+      createdAt: user?.createdAt || null,
+      RecordedSentences: recordedSentences,
+      RecordingTotalCount: recordingTotalCount
+    });
+  }
+
+  return results;
 };
 
 // Get users sorted by number of distinct sentences they recorded
@@ -299,7 +334,7 @@ exports.getUsersByUniqueSentenceCount = async (limit = 10, statusFilter = null) 
     const user = users.find(u => u._id.toString() === s._id.toString());
     return {
       userId: user?._id || s._id,
-      name: user?.name || null,
+      email: user?.email || null,
       uniqueSentences: s.uniqueSentenceCount,
       createdAt: user?.createdAt || null
     };
