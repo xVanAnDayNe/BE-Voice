@@ -16,8 +16,21 @@ const personSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ['User'],
+      enum: ['User', 'Volunteer'],
       default: 'User'
+    }
+    ,
+    email: {
+      type: String,
+      default: null,
+      trim: true,
+      lowercase: true
+    }
+    ,
+    password: {
+      type: String,
+      default: null,
+      select: false
     }
   },
   {

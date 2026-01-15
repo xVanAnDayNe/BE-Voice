@@ -1,13 +1,55 @@
 const userService = require("../services/person.service");
+const jwt = require("jsonwebtoken");
 
 exports.createGuestUser = async (req, res) => {
   try {
-  const user = await userService.createGuest(req.body);
+    const result = await userService.createGuest(req.body);
+    const user = result.user || result;
+    const token = jwt.sign(
+      {
+        role: "User",
+        userId: user._id,
+        name: user.name
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || "1d" }
+    );
 
-  res.status(201).json({
-    message: "Guest(User) create successfully",
-    guestId: user._id
-  });
+    return res.status(200).json({
+      message: "Login success",
+      token
+    });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// Create or login volunteer
+exports.createVolunteerUser = async (req, res) => {
+  try {
+    const result = await userService.createVolunteer(req.body);
+    const user = result.user || result;
+
+    if (result.existed) {
+      return res.status(200).json({
+        message: "Volunteer already exists",
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role
+        }
+      });
+    }
+    return res.status(201).json({
+      message: "Volunteer created successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

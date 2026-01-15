@@ -8,6 +8,7 @@ router.get("/", controller.getAll);
 router.get("/top-recorders", verifyAdminOrManager, controller.getTopRecorders);
 router.get("/top-sentence-contributors", controller.getTopSentenceContributors);
 router.get("/top-sentence-recorders", controller.getTopSentenceRecorders);
+router.post("/volunteer", controller.createVolunteerUser);
 router.get("/total-contributions", controller.getTotalUserContributions);
 router.put("/:id", verifyAdminOrManager, controller.updateUser);
 router.delete("/:id", verifyAdminOrManager, controller.deleteUser);
