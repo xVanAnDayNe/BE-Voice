@@ -340,3 +340,61 @@ exports.getUsersByUniqueSentenceCount = async (limit = 10, statusFilter = null) 
     };
   });
 };
+
+// Get user by id with recordings done (approved), total duration, and created sentences
+exports.getUserById = async (userId) => {
+  if (!userId) throw new Error("userId is required");
+  const user = await Person.findById(userId).lean();
+  if (!user) throw new Error("User not found");
+
+  // approved recordings by this user
+  const recAgg = await recording.aggregate([
+    { $match: { personId: user._id, isApproved: 1 } },
+    { $group: { _id: "$sentenceId", count: { $sum: 1 } } }
+  ]);
+  const sentenceIds = recAgg.map(r => r._id);
+  const sentenceDocs = sentenceIds.length ? await sentence.find({ _id: { $in: sentenceIds } }).select("content") : [];
+  const sentenceById = {};
+  sentenceDocs.forEach(s => { sentenceById[s._id.toString()] = s.content; });
+  const sentencesDone = recAgg.map(r => ({
+    SentenceID: r._id,
+    Content: sentenceById[r._id.toString()] || null
+  }));
+
+  const uniqueCount = sentenceIds.length;
+
+  const durationAgg = await recording.aggregate([
+    { $match: { personId: user._id, isApproved: 1 } },
+    { $group: { _id: null, totalDuration: { $sum: { $ifNull: ["$duration", 0] } } } }
+  ]);
+  const totalDuration = (durationAgg[0] && durationAgg[0].totalDuration) || 0;
+
+  // created sentences by this user (use createdById if present, else email)
+  const createdQuery = {
+    $or: [
+      { createdById: user._id },
+      { createdBy: user.email }
+    ]
+  };
+  const createdDocs = await sentence.find(createdQuery).select("content status createdAt").sort({ createdAt: -1 }).lean();
+  const createdCount = createdDocs.length;
+  const createdList = createdDocs.map(s => ({
+    SentenceID: s._id,
+    Content: s.content,
+    Status: s.status,
+    CreatedAt: s.createdAt
+  }));
+
+  return {
+    PersonID: user._id,
+    Email: user.email,
+    Gender: user.gender,
+    Role: user.role,
+    CreatedAt: user.createdAt,
+    SentencesDone: sentencesDone,
+    TotalRecordingDuration: totalDuration,
+    TotalSentencesDone: uniqueCount,
+    TotalContributedByUser: createdCount,
+    CreatedSentences: createdList
+  };
+};

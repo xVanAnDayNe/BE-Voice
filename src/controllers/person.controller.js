@@ -164,3 +164,13 @@ exports.getTotalUserContributions = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+exports.getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await userService.getUserById(id);
+    res.json({ count: 1, data: [user] });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
