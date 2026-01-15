@@ -12,6 +12,7 @@ exports.createGuest = async (data) => {
   );
 
   if (existingUser) {
+    // return existing user object and flag so controller can issue token/login
     const user = await Person.findOne({ _id: existingUser._id });
     return { user, existed: true };
   }
@@ -21,52 +22,6 @@ exports.createGuest = async (data) => {
     gender: data.gender,
     role: "User",
   });
-  return { user: created, existed: false };
-};
-
-// Create or reuse volunteer user
-exports.createVolunteer = async (data) => {
-  if (!data.email) {
-    throw new Error("Email is required for volunteer");
-  }
-  const email = data.email.trim().toLowerCase();
-  let user = await Person.findOne({ email }).select("+password");
-  if (user) {
-    if (user.role !== "Volunteer") {
-      user.role = "Volunteer";
-      if (data.password) {
-        const hashed = await require("bcrypt").hash(data.password, 10);
-        user.password = hashed;
-      }
-      await user.save();
-    }
-    return { user, existed: true };
-  }
-  if (data.name) {
-    const trimmedName = data.name.trim();
-    const existingByName = await Person.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });
-    if (existingByName) {
-      existingByName.email = email;
-      existingByName.role = "Volunteer";
-      if (data.password) {
-        existingByName.password = await require("bcrypt").hash(data.password, 10);
-      }
-      await existingByName.save();
-      return { user: existingByName, existed: true };
-    }
-  }
-
-  // create new volunteer
-  const createdPayload = {
-    name: data.name ? data.name.trim() : "Volunteer",
-    gender: data.gender || "Other",
-    role: "Volunteer",
-    email
-  };
-  if (data.password) {
-    createdPayload.password = await require("bcrypt").hash(data.password, 10);
-  }
-  const created = await Person.create(createdPayload);
   return { user: created, existed: false };
 };
 
@@ -97,12 +52,14 @@ exports.getUsers = async () => {
     durationAgg.forEach(item => {
       durationMap[item._id.toString()] = item.totalDuration;
     });
+    // contributions by user name (sentences created by users)
     const contribAgg = await sentence.aggregate([
       { $match: { createdBy: { $ne: null } } },
       { $group: { _id: "$createdBy", count: { $sum: 1 } } }
     ]);
     const contribMap = {};
     contribAgg.forEach(item => { contribMap[item._id] = item.count; });
+    // fetch detailed created sentences grouped by createdBy (name)
     const userNames = users.map(u => u.Name).filter(Boolean);
     let createdSentences = [];
     if (userNames.length) {
@@ -172,7 +129,7 @@ exports.getTotalUserContributions = async (options = {}) => {
   return { totalContributed: total, sentences };
 };
 
-exports.loginAdmin = async (email, password) => {
+exports.loginAdmin = async (username, password) => {
   if (username !== process.env.ADMIN_USERNAME) {
     throw new Error("Invalid credentials");
   }

@@ -5,6 +5,8 @@ exports.createGuestUser = async (req, res) => {
   try {
     const result = await userService.createGuest(req.body);
     const user = result.user || result;
+
+    // create JWT token for user
     const token = jwt.sign(
       {
         role: "User",
@@ -18,37 +20,6 @@ exports.createGuestUser = async (req, res) => {
     return res.status(200).json({
       message: "Login success",
       token
-    });
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-};
-
-// Create or login volunteer
-exports.createVolunteerUser = async (req, res) => {
-  try {
-    const result = await userService.createVolunteer(req.body);
-    const user = result.user || result;
-
-    if (result.existed) {
-      return res.status(200).json({
-        message: "Volunteer already exists",
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role
-        }
-      });
-    }
-    return res.status(201).json({
-      message: "Volunteer created successfully",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
     });
   } catch (error) {
     res.status(400).json({ message: error.message });
