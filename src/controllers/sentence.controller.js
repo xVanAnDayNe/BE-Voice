@@ -194,3 +194,16 @@ exports.updateSentence = async (req, res) => {
     });
   }
 };
+
+exports.deleteSentence = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await sentenceService.deleteSentence(id);
+    res.json({
+      message: "Sentence deleted successfully",
+      deletedId: deleted._id
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};

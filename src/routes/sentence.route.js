@@ -13,5 +13,7 @@ router.get("/download", sentenceController.downloadSentences);
 router.put("/:id", sentenceController.updateSentence);
 router.patch("/:id/approve", verifyAdminOrManager, sentenceController.approveSentence);
 router.patch("/:id/reject", verifyAdminOrManager, sentenceController.rejectSentence);
+// Admin/Manager only: delete sentence
+router.delete("/:id", sentenceController.deleteSentence);
 
 module.exports = router;

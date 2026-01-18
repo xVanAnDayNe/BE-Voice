@@ -216,6 +216,17 @@ exports.rejectSentence = async (id) => {
   return sentence;
 };
 
+// Delete sentence and its recordings
+exports.deleteSentence = async (id) => {
+  const sent = await Sentence.findByIdAndDelete(id);
+  if (!sent) {
+    throw new Error("Sentence không tồn tại");
+  }
+  // remove related recordings
+  await Recording.deleteMany({ sentenceId: id });
+  return sent;
+};
+
 //Get sentences by status
 exports.getSentencesByStatus = async (status) => {
   const validStatuses = [0, 1, 2, 3];
