@@ -207,3 +207,16 @@ exports.deleteSentence = async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 };
+
+// Approve all pending sentences
+exports.approveAll = async (req, res) => {
+  try {
+    const result = await sentenceService.approveAllPending();
+    res.json({
+      message: "Approve all processed",
+      result
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

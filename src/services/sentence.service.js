@@ -263,3 +263,30 @@ exports.updateSentence = async (id, data) => {
 
   return sentence;
 };
+
+// Approve all pending sentences (status = 0)
+exports.approveAllPending = async () => {
+  const pending = await Sentence.find({ status: 0 }).sort({ createdAt: 1 });
+  const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  const approved = [];
+  const rejected = [];
+
+  for (const s of pending) {
+    const dup = await Sentence.findOne({
+      _id: { $ne: s._id },
+      content: { $regex: new RegExp(`^${escapeRegex(s.content)}$`, 'i') },
+      status: { $in: [1, 2] }
+    });
+
+    if (dup) {
+      await Sentence.findByIdAndUpdate(s._id, { status: 3 });
+      rejected.push({ id: s._id, content: s.content, reason: "Duplicate exists" });
+    } else {
+      await Sentence.findByIdAndUpdate(s._id, { status: 1 });
+      approved.push({ id: s._id, content: s.content });
+    }
+  }
+
+  return { approved, rejected, totalPending: pending.length };
+};

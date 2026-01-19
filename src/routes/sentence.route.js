@@ -15,5 +15,7 @@ router.patch("/:id/approve", verifyAdminOrManager, sentenceController.approveSen
 router.patch("/:id/reject", verifyAdminOrManager, sentenceController.rejectSentence);
 // Admin/Manager only: delete sentence
 router.delete("/:id", sentenceController.deleteSentence);
+// Approve all pending sentences
+router.patch("/approve-all", sentenceController.approveAll);
 
 module.exports = router;
