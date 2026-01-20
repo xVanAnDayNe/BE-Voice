@@ -74,7 +74,7 @@ exports.createUserSentence = async (content, userName = null) => {
       }
       toInsert.push({
         content: text,
-        status: 0,
+        status: 1,
         createdBy: userName || null,
       });
     }
