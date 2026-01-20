@@ -50,9 +50,11 @@ exports.createUserSentence = async (req, res) => {
         data: result
       });
     }
-    return res.status(200).json({
-      message: `No new sentences created; ${skippedCount} duplicate(s) skipped`,
-      data: result
+
+    // createdCount === 0 && skippedCount > 0
+    return res.status(409).json({
+      message: `All sentences are duplicates; ${skippedCount} duplicate(s) found`,
+      duplicates: result.skipped
     });
   } catch (err) {
     res.status(400).json({
