@@ -236,7 +236,7 @@ exports.getUsersByRecordingCount = async (statusFilter = null, limit = 10) => {
 
 
 // Get users sorted by sentence contributions (only sentences with status 1,2,3)
-exports.getUsersBySentenceCount = async (limit = 10) => {
+exports.getUsersBySentenceCount = async (limit = 400) => {
   const stats = await sentence.aggregate([
     { $match: { status: { $in: [1, 2, 3] }, createdBy: { $ne: null } } },
     {

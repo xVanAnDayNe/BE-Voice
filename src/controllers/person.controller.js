@@ -100,7 +100,7 @@ exports.getTopRecorders = async (req, res) => {
     res.json({
       filter: {
         status: status ? Number(status) : null,
-        limit: Number(limit) || 10
+        limit
       },
       count: users.length,
       data: users
@@ -114,12 +114,11 @@ exports.getTopRecorders = async (req, res) => {
 exports.getTopSentenceContributors = async (req, res) => {
   try {
     const { limit } = req.query;
-
-    const users = await userService.getUsersBySentenceCount(limit || 10);
+    const users = await userService.getUsersBySentenceCount(limit);
 
     res.json({
       filter: {
-        limit: Number(limit) || 10
+        limit
       },
       count: users.length,
       data: users
@@ -134,12 +133,12 @@ exports.getTopSentenceRecorders = async (req, res) => {
   try {
     const { status, limit } = req.query;
 
-    const users = await userService.getUsersByUniqueSentenceCount(limit || 10, status ?? null);
+    const users = await userService.getUsersByUniqueSentenceCount(limit,status);
 
     res.json({
       filter: {
         status: status !== undefined ? Number(status) : null,
-        limit: Number(limit) || 10
+        limit
       },
       count: users.length,
       data: users
