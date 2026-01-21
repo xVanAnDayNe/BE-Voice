@@ -63,6 +63,20 @@ exports.getUsers = async () => {
     ]);
     const contribMap = {};
     contribAgg.forEach(item => { contribMap[item._id] = item.count; });
+    // contributions approved by createdBy email
+    const contribApprovedByEmailAgg = await sentence.aggregate([
+      { $match: { createdBy: { $ne: null }, status: 1 } },
+      { $group: { _id: "$createdBy", count: { $sum: 1 } } }
+    ]);
+    const contribApprovedEmailMap = {};
+    contribApprovedByEmailAgg.forEach(item => { contribApprovedEmailMap[item._id] = item.count; });
+    // contributions approved by createdById
+    const contribApprovedByIdAgg = await sentence.aggregate([
+      { $match: { createdById: { $ne: null }, status: 1 } },
+      { $group: { _id: "$createdById", count: { $sum: 1 } } }
+    ]);
+    const contribApprovedIdMap = {};
+    contribApprovedByIdAgg.forEach(item => { contribApprovedIdMap[item._id?.toString()] = item.count; });
     const userNames = users.map(u => u.Email).filter(Boolean);
     let createdSentences = [];
     if (userNames.length) {
@@ -104,6 +118,7 @@ exports.getUsers = async () => {
         TotalRecordingDuration: totalDuration,
         TotalSentencesDone: totalSentencesDone,
         TotalContributedByUser: contribMap[u.Email] || 0,
+        TotalContributedApproved: contribApprovedIdMap[uid] || contribApprovedEmailMap[u.Email] || 0,
         CreatedSentences: createdByMap[u.Email] || []
       };
     });
