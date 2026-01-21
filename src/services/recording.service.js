@@ -29,7 +29,17 @@ const uploadWavAudio = async (file) => {
 // GET ALL 
 const getAllRecordings = async () => {
   const recordings = await Recording.find().sort({ createdAt: -1 });
-  return recordings.map(mapRecording);
+  const mapped = recordings.map(mapRecording);
+
+  const totalDurationSeconds = recordings.reduce((acc, r) => acc + (r.duration || 0), 0);
+  const totalDurationHours = totalDurationSeconds / 3600;
+
+  return {
+    recordings: mapped,
+    count: mapped.length,
+    totalDurationSeconds,
+    totalDurationHours
+  };
 };
 
 // APPROVE recording (set isApproved = 1 và update sentence status = 2)

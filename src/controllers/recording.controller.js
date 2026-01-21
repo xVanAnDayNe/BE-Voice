@@ -47,10 +47,12 @@ exports.uploadAudio = async (req, res) => {
 //GET ALL RECORDING
 exports.getAllRecordings = async (req, res) => {
   try {
-    const recordings = await recordingService.getAllRecordings();
+    const result = await recordingService.getAllRecordings();
     res.status(200).json({
-      count: recordings.length,
-      data: recordings
+      count: result.count,
+      totalDurationSeconds: result.totalDurationSeconds,
+      totalDurationHours: result.totalDurationHours,
+      data: result.recordings
     });
   } catch (err) {
     res.status(500).json({ message: "Error fetching recordings", error: err.message });
