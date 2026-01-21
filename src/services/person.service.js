@@ -236,8 +236,8 @@ exports.getUsersByRecordingCount = async (statusFilter = null, limit = 10) => {
 
 
 // Get users sorted by sentence contributions (only sentences with status 1,2,3)
-exports.getUsersBySentenceCount = async (limit = 400) => {
-  const stats = await sentence.aggregate([
+exports.getUsersBySentenceCount = async (limit = null) => {
+  const pipeline = [
     { $match: { status: { $in: [1, 2, 3] }, createdBy: { $ne: null } } },
     {
       $group: {
@@ -248,22 +248,40 @@ exports.getUsersBySentenceCount = async (limit = 400) => {
         status3Count: { $sum: { $cond: [{ $eq: ["$status", 3] }, 1, 0] } }
       }
     },
-    { $sort: { sentenceCount: -1 } },
-    { $limit: Number(limit) }
-  ]);
+    { $sort: { sentenceCount: -1 } }
+  ];
+  if (limit && Number(limit) > 0) {
+    pipeline.push({ $limit: Number(limit) });
+  }
 
-  const names = stats.map(s => s._id);
-  const users = await Person.find({ email: { $in: names } });
+  const stats = await sentence.aggregate(pipeline);
+
+  // map stats by email for quick lookup
+  const statsMap = {};
+  stats.forEach(s => {
+    statsMap[s._id] = {
+      totalSentences: s.sentenceCount,
+      status1Count: s.status1Count,
+      status2Count: s.status2Count,
+      status3Count: s.status3Count
+    };
+  });
+
+  // fetch all persons and attach stats (0 if none)
+  const persons = await Person.find().select("email gender role createdAt");
 
   const results = [];
-  for (const s of stats) {
-    const user = users.find(u => u.email === s._id);
-    const personId = user?._id || null;
+  for (const user of persons) {
+    const email = user.email;
+    const stat = statsMap[email] || { totalSentences: 0, status1Count: 0, status2Count: 0, status3Count: 0 };
+    const personId = user._id;
+
+    // only compute recordings for users with any approved recordings
     let recordedSentences = [];
     let recordingTotalCount = 0;
-    if (personId) {
+    if (stat.totalSentences > 0) {
       const recAgg = await recording.aggregate([
-        { $match: { personId: personId } },
+        { $match: { personId: personId, isApproved: 1 } },
         {
           $group: {
             _id: "$sentenceId",
@@ -286,13 +304,13 @@ exports.getUsersBySentenceCount = async (limit = 400) => {
     }
 
     results.push({
-      userEmail: s._id,
+      userEmail: email,
       userId: personId,
-      totalSentences: s.sentenceCount,
-      status1Count: s.status1Count,
-      status2Count: s.status2Count,
-      status3Count: s.status3Count,
-      createdAt: user?.createdAt || null,
+      totalSentences: stat.totalSentences,
+      status1Count: stat.status1Count,
+      status2Count: stat.status2Count,
+      status3Count: stat.status3Count,
+      createdAt: user.createdAt || null,
       RecordedSentences: recordedSentences,
       RecordingTotalCount: recordingTotalCount
     });

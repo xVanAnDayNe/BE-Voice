@@ -114,11 +114,12 @@ exports.getTopRecorders = async (req, res) => {
 exports.getTopSentenceContributors = async (req, res) => {
   try {
     const { limit } = req.query;
-    const users = await userService.getUsersBySentenceCount(limit);
+    const lim = limit ? Number(limit) : null;
+    const users = await userService.getUsersBySentenceCount(lim);
 
     res.json({
       filter: {
-        limit
+        limit: lim
       },
       count: users.length,
       data: users
