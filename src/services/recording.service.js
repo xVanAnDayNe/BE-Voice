@@ -31,7 +31,8 @@ const getAllRecordings = async () => {
   const recordings = await Recording.find().sort({ createdAt: -1 });
   const mapped = recordings.map(mapRecording);
 
-  const totalDurationSeconds = recordings.reduce((acc, r) => acc + (r.duration || 0), 0);
+  const approvedRecordings = recordings.filter(r => r.isApproved === 1);
+  const totalDurationSeconds = approvedRecordings.reduce((acc, r) => acc + (r.duration || 0), 0);
   const totalDurationHours = totalDurationSeconds / 3600;
 
   return {
